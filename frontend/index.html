@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Text to Audio</title>
+  <link rel="manifest" href="/static/manifest.json" />
+  <meta name="theme-color" content="#a78bfa" />
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/static/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/static/icon-512.png" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f14;
+      color: #e2e2ef;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* ---- HEADER ---- */
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+    }
+    header p {
+      margin-top: 0.4rem;
+      color: #8b8bab;
+      font-size: 0.9rem;
+    }
+
+    /* ---- CARD ---- */
+    .card {
+      background: #1a1a2e;
+      border: 1px solid #2d2d4e;
+      border-radius: 16px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    /* ---- SECTION LABEL ---- */
+    .label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #7070a0;
+      margin-bottom: 0.5rem;
+    }
+
+    /* ---- TEXTAREA ---- */
+    .textarea-wrap {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+    textarea {
+      width: 100%;
+      min-height: 260px;
+      background: #0f0f1e;
+      border: 1px solid #2d2d50;
+      border-radius: 10px;
+      color: #e2e2ef;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      padding: 1rem;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    textarea:focus { border-color: #6366f1; }
+    textarea::placeholder { color: #44446a; }
+
+    .char-counter {
+      position: absolute;
+      bottom: 0.5rem;
+      right: 0.75rem;
+      font-size: 0.75rem;
+      color: #44446a;
+    }
+
+    /* ---- HINT BOX ---- */
+    .hint {
+      background: #141428;
+      border: 1px solid #2a2a45;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.82rem;
+      color: #6060a0;
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+    .hint strong { color: #8080c0; }
+    .hint code {
+      background: #1e1e38;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 0.82rem;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      color: #a78bfa;
+    }
+
+    /* ---- SETTINGS ROW ---- */
+    .settings {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 600px) {
+      .settings { grid-template-columns: 1fr; }
+    }
+
+    .setting-group { display: flex; flex-direction: column; }
+
+    select {
+      background: #0f0f1e;
+      border: 1px solid #2d2d50;
+      border-radius: 8px;
+      color: #e2e2ef;
+      font-size: 0.9rem;
+      padding: 0.55rem 0.75rem;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236060a0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      padding-right: 2.5rem;
+    }
+    select:focus { border-color: #6366f1; }
+
+    /* ---- SEARCHABLE LANGUAGE DROPDOWN ---- */
+    .lang-wrap { position: relative; }
+
+    .lang-input-row {
+      display: flex;
+      align-items: center;
+      background: #0f0f1e;
+      border: 1px solid #2d2d50;
+      border-radius: 8px;
+      padding: 0 0.75rem;
+      cursor: text;
+      transition: border-color 0.2s;
+    }
+    .lang-wrap.open .lang-input-row,
+    .lang-input-row:focus-within { border-color: #6366f1; }
+
+    .lang-input-row input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #e2e2ef;
+      font-size: 0.9rem;
+      padding: 0.55rem 0;
+      font-family: inherit;
+      cursor: text;
+      min-width: 0;
+    }
+    .lang-input-row input::placeholder { color: #44446a; }
+
+    .lang-chevron {
+      color: #6060a0;
+      flex-shrink: 0;
+      transition: transform 0.2s;
+      pointer-events: none;
+    }
+    .lang-wrap.open .lang-chevron { transform: rotate(180deg); }
+
+    .lang-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: #141428;
+      border: 1px solid #2d2d50;
+      border-radius: 8px;
+      max-height: 240px;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    .lang-wrap.open .lang-dropdown { display: block; }
+
+    .lang-dropdown::-webkit-scrollbar { width: 4px; }
+    .lang-dropdown::-webkit-scrollbar-track { background: transparent; }
+    .lang-dropdown::-webkit-scrollbar-thumb { background: #2d2d50; border-radius: 2px; }
+
+    .lang-opt {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+      color: #c0c0e0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background 0.1s;
+    }
+    .lang-opt:hover, .lang-opt.focused { background: #1e1e3a; color: #e2e2ef; }
+    .lang-opt.selected { color: #a78bfa; }
+    .lang-opt.selected::after {
+      content: "✓";
+      margin-left: auto;
+      font-size: 0.8rem;
+      color: #a78bfa;
+    }
+    .lang-opt.hidden { display: none; }
+    .lang-no-results {
+      padding: 0.6rem 0.75rem;
+      font-size: 0.85rem;
+      color: #44446a;
+      text-align: center;
+    }
+
+    /* подсветка совпадения */
+    .lang-opt mark {
+      background: transparent;
+      color: #a78bfa;
+      font-weight: 600;
+    }
+
+    /* ---- MODE TOGGLE ---- */
+    .mode-toggle {
+      display: flex;
+      gap: 0;
+      border: 1px solid #2d2d50;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .mode-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #6060a0;
+      font-size: 0.87rem;
+      padding: 0.55rem 0.5rem;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      font-family: inherit;
+    }
+    .mode-btn.active {
+      background: linear-gradient(135deg, #5c47d0, #3b82f6);
+      color: #fff;
+    }
+    .mode-btn:not(.active):hover { background: #1e1e38; color: #a0a0d0; }
+
+    /* ---- BUTTON ---- */
+    .btn-generate {
+      width: 100%;
+      padding: 0.85rem;
+      background: linear-gradient(135deg, #6366f1, #3b82f6);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 0.3px;
+    }
+    .btn-generate:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    .btn-generate:active:not(:disabled) { transform: translateY(0); }
+    .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ---- STATUS ---- */
+    .status-area {
+      margin-top: 1.5rem;
+      display: none;
+    }
+    .status-area.visible { display: block; }
+
+    .spinner-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: #8080b0;
+      font-size: 0.9rem;
+    }
+    .spinner {
+      width: 22px; height: 22px;
+      border: 3px solid #2d2d50;
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- RESULT ---- */
+    .result-box {
+      background: #141428;
+      border: 1px solid #2a2a45;
+      border-radius: 10px;
+      padding: 1.25rem;
+    }
+    .result-box h3 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #7070a0;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 1rem;
+    }
+    audio {
+      width: 100%;
+      border-radius: 6px;
+      outline: none;
+    }
+    audio::-webkit-media-controls-panel { background: #1a1a38; }
+
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.9rem;
+      padding: 0.55rem 1.1rem;
+      background: #1e1e38;
+      border: 1px solid #3d3d60;
+      border-radius: 8px;
+      color: #a78bfa;
+      font-size: 0.88rem;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .download-btn:hover { background: #262650; }
+
+    /* ---- ERROR ---- */
+    .error-box {
+      background: #2a1020;
+      border: 1px solid #5a2040;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      color: #f87171;
+      font-size: 0.9rem;
+    }
+
+    /* ---- UPLOAD BUTTON ---- */
+    .upload-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.75rem;
+      background: #1a1a38;
+      border: 1px solid #303058;
+      border-radius: 7px;
+      color: #8080c0;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      user-select: none;
+    }
+    .upload-btn:hover { background: #22224a; color: #a78bfa; border-color: #5050a0; }
+    .upload-btn svg { flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🎙 Text to Audio</h1>
+    <p>Озвучка текста через Google Cloud TTS — с таймингом или без</p>
+  </header>
+
+  <div class="card">
+
+    <!-- TEXTAREA HEADER -->
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem; gap:0.75rem;">
+      <div class="label" style="margin-bottom:0; flex-shrink:0">Текст</div>
+      <div id="filenameTag" style="display:none; align-items:center; gap:0.4rem; background:#1a1a38; border:1px solid #303058; border-radius:6px; padding:0.25rem 0.6rem; font-size:0.78rem; color:#a78bfa; min-width:0; flex:1; max-width:280px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span id="filenameText" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+        <button onclick="clearFile()" style="background:none; border:none; cursor:pointer; color:#6060a0; padding:0; line-height:1; font-size:14px; flex-shrink:0;" title="Очистить">×</button>
+      </div>
+      <label class="upload-btn" title="Загрузить текстовый файл (.txt, .srt, .vtt)" style="flex-shrink:0;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Загрузить файл
+        <input type="file" id="fileUpload" accept=".txt,.srt,.vtt" style="display:none">
+      </label>
+    </div>
+
+    <!-- TEXTAREA -->
+    <div class="textarea-wrap">
+      <textarea id="text" placeholder="Вставьте любой текст или загрузите файл.
+
+Обычный текст (без тайминга):
+  Добрый день! Сегодня мы поговорим о важной теме.
+  Пластик разрушает нашу планету. Нужно действовать.
+
+Или текст с таймингом — тайминг будет убран или использован для пауз:
+  (00:52–01:22)
+  Si cette tendance se poursuit...
+
+  [00:00:05] Добрый день, друзья!
+  00:00:10 - Сегодня мы поговорим...
+
+  SRT субтитры:
+  1
+  00:00:01,000 --> 00:00:04,000
+  Привет! Это тестовая фраза."></textarea>
+      <span class="char-counter" id="charCount">0</span>
+    </div>
+
+    <!-- HINT -->
+    <div class="hint">
+      <strong>Простой режим</strong> — работает с любым текстом. Если в тексте есть тайминг, он удаляется автоматически.<br>
+      <strong>С паузами</strong> — использует тайминг для вставки тишины между фрагментами. С обычным текстом работает как Простой.<br>
+      <span style="color:#5050a0">Поддерживаемые форматы тайминга:</span>
+      <code>(00:52–01:22)</code> &nbsp;·&nbsp;
+      <code>[00:01:30] Текст</code> &nbsp;·&nbsp;
+      <code>00:01:30 - Текст</code> &nbsp;·&nbsp;
+      SRT субтитры
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="settings">
+      <div class="setting-group">
+        <div class="label">Язык</div>
+        <div class="lang-wrap" id="langWrap">
+          <div class="lang-input-row" id="langInputRow">
+            <input type="text" id="langSearch" placeholder="Поиск языка..." autocomplete="off" spellcheck="false">
+            <svg class="lang-chevron" width="12" height="8" viewBox="0 0 12 8" fill="none">
+              <path d="M1 1l5 5 5-5" stroke="#6060a0" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="lang-dropdown" id="langDropdown"></div>
+        </div>
+      </div>
+      <div class="setting-group">
+        <div class="label">Голос</div>
+        <select id="voice"></select>
+      </div>
+      <div class="setting-group">
+        <div class="label">Режим</div>
+        <div class="mode-toggle">
+          <button class="mode-btn active" data-mode="simple">Простой</button>
+          <button class="mode-btn" data-mode="timed">С паузами</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUTTON -->
+    <button class="btn-generate" id="generateBtn">Озвучить</button>
+
+    <!-- STATUS AREA -->
+    <div class="status-area" id="statusArea">
+      <!-- spinner (hidden when done) -->
+      <div class="spinner-wrap" id="spinnerWrap">
+        <div class="spinner"></div>
+        <span id="statusText">Отправляю запрос...</span>
+      </div>
+      <!-- result (hidden until done) -->
+      <div class="result-box" id="resultBox" style="display:none">
+        <h3>Результат</h3>
+        <audio id="audioPlayer" controls></audio>
+        <br>
+        <a class="download-btn" id="downloadLink" href="#" download>
+          ⬇ Скачать MP3
+        </a>
+      </div>
+      <!-- error -->
+      <div class="error-box" id="errorBox" style="display:none"></div>
+    </div>
+
+  </div>
+
+  <script>
+    const API = "";  // same origin
+
+    let selectedMode = "simple";
+
+    function esc(str) {
+      return String(str)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    // ---- CHAR COUNTER ----
+    const textEl = document.getElementById("text");
+    const charCount = document.getElementById("charCount");
+    textEl.addEventListener("input", () => {
+      charCount.textContent = textEl.value.length.toLocaleString();
+    });
+
+    // ---- FILE UPLOAD ----
+    document.getElementById("fileUpload").addEventListener("change", function () {
+      const file = this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        textEl.value = e.target.result;
+        charCount.textContent = textEl.value.length.toLocaleString();
+        // Показать имя файла
+        const tag = document.getElementById("filenameTag");
+        document.getElementById("filenameText").textContent = file.name;
+        tag.style.display = "flex";
+      };
+      reader.readAsText(file, "UTF-8");
+      this.value = "";
+    });
+
+    function clearFile() {
+      textEl.value = "";
+      charCount.textContent = "0";
+      document.getElementById("filenameTag").style.display = "none";
+      document.getElementById("filenameText").textContent = "";
+    }
+
+    // ---- MODE TOGGLE ----
+    document.querySelectorAll(".mode-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        selectedMode = btn.dataset.mode;
+      });
+    });
+
+    // ---- SEARCHABLE LANGUAGE DROPDOWN ----
+    const voiceSel  = document.getElementById("voice");
+    const langWrap  = document.getElementById("langWrap");
+    const langInput = document.getElementById("langSearch");
+    const langDrop  = document.getElementById("langDropdown");
+
+    let allLangs        = [];   // [{code, label}]
+    let selectedLang    = "ru"; // текущий выбранный код
+    let focusedIdx      = -1;   // индекс подсвеченного элемента клавиатурой
+
+    function openDrop() {
+      langWrap.classList.add("open");
+      filterDrop(langInput.value);
+      focusedIdx = -1;
+      // прокрутить к выбранному
+      const sel = langDrop.querySelector(".lang-opt.selected");
+      if (sel) sel.scrollIntoView({ block: "nearest" });
+    }
+
+    function closeDrop() {
+      langWrap.classList.remove("open");
+      // восстановить отображение выбранного
+      const lang = allLangs.find(l => l.code === selectedLang);
+      langInput.value = lang ? lang.label : "";
+    }
+
+    function selectLang(code, label) {
+      selectedLang = code;
+      langInput.value = label;
+      closeDrop();
+      loadVoices(code);
+      // обновить selected-класс
+      langDrop.querySelectorAll(".lang-opt").forEach(el => {
+        el.classList.toggle("selected", el.dataset.code === code);
+      });
+    }
+
+    function filterDrop(query) {
+      const q = query.trim().toLowerCase();
+      let visibleItems = [];
+      langDrop.querySelectorAll(".lang-opt").forEach(el => {
+        const label = el.dataset.label.toLowerCase();
+        const match = !q || label.includes(q);
+        el.classList.toggle("hidden", !match);
+        if (match) visibleItems.push(el);
+
+        // подсветить совпадение
+        if (match && q) {
+          const idx = el.dataset.label.toLowerCase().indexOf(q);
+          const orig = el.dataset.label;
+          el.innerHTML =
+            esc(orig.slice(0, idx)) +
+            "<mark>" + esc(orig.slice(idx, idx + q.length)) + "</mark>" +
+            esc(orig.slice(idx + q.length));
+        } else {
+          el.textContent = el.dataset.label;
+        }
+      });
+
+      // no-results
+      let noRes = langDrop.querySelector(".lang-no-results");
+      if (visibleItems.length === 0) {
+        if (!noRes) {
+          noRes = document.createElement("div");
+          noRes.className = "lang-no-results";
+          noRes.textContent = "Ничего не найдено";
+          langDrop.appendChild(noRes);
+        }
+        noRes.style.display = "block";
+      } else if (noRes) {
+        noRes.style.display = "none";
+      }
+      focusedIdx = -1;
+    }
+
+    function moveFocus(dir) {
+      const visible = [...langDrop.querySelectorAll(".lang-opt:not(.hidden)")];
+      if (!visible.length) return;
+      focusedIdx = Math.max(0, Math.min(visible.length - 1, focusedIdx + dir));
+      visible.forEach((el, i) => el.classList.toggle("focused", i === focusedIdx));
+      visible[focusedIdx].scrollIntoView({ block: "nearest" });
+    }
+
+    // Построить список один раз
+    function buildDrop(langs) {
+      langDrop.innerHTML = "";
+      langs.forEach(l => {
+        const el = document.createElement("div");
+        el.className = "lang-opt" + (l.code === selectedLang ? " selected" : "");
+        el.dataset.code  = l.code;
+        el.dataset.label = l.label;
+        el.textContent   = l.label;
+        el.addEventListener("mousedown", (e) => {
+          e.preventDefault();  // не снимать фокус с input
+          selectLang(l.code, l.label);
+        });
+        langDrop.appendChild(el);
+      });
+    }
+
+    // Клик на input-row открывает/закрывает
+    document.getElementById("langInputRow").addEventListener("click", () => {
+      langWrap.classList.contains("open") ? closeDrop() : (langInput.focus(), openDrop());
+    });
+
+    langInput.addEventListener("focus", openDrop);
+    langInput.addEventListener("input", () => filterDrop(langInput.value));
+
+    langInput.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown")  { e.preventDefault(); moveFocus(1); }
+      if (e.key === "ArrowUp")    { e.preventDefault(); moveFocus(-1); }
+      if (e.key === "Enter") {
+        const visible = [...langDrop.querySelectorAll(".lang-opt:not(.hidden)")];
+        const target  = focusedIdx >= 0 ? visible[focusedIdx] : visible[0];
+        if (target) selectLang(target.dataset.code, target.dataset.label);
+      }
+      if (e.key === "Escape") closeDrop();
+    });
+
+    // Клик вне — закрыть
+    document.addEventListener("mousedown", (e) => {
+      if (!langWrap.contains(e.target)) closeDrop();
+    });
+
+    async function loadLanguages() {
+      const res  = await fetch("/languages");
+      const data = await res.json();
+      allLangs = data.languages;
+      buildDrop(allLangs);
+      // установить Русский по умолчанию
+      const def = allLangs.find(l => l.code === "ru") || allLangs[0];
+      selectLang(def.code, def.label);
+      await loadVoices(def.code);
+    }
+
+    async function loadVoices(lang) {
+      voiceSel.innerHTML = '<option value="">Загружаю...</option>';
+      const res  = await fetch(`/voices/${lang}`);
+      const data = await res.json();
+      voiceSel.innerHTML = "";
+      data.voices.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value   = v.name;
+        opt.textContent = v.label;
+        voiceSel.appendChild(opt);
+      });
+    }
+
+    loadLanguages();
+
+    // ---- GENERATE ----
+    document.getElementById("generateBtn").addEventListener("click", async () => {
+      const text = textEl.value.trim();
+      if (!text) { alert("Введите текст!"); return; }
+
+      const btn = document.getElementById("generateBtn");
+      const statusArea = document.getElementById("statusArea");
+      const spinnerWrap = document.getElementById("spinnerWrap");
+      const statusText = document.getElementById("statusText");
+      const resultBox = document.getElementById("resultBox");
+      const errorBox = document.getElementById("errorBox");
+      const audioPlayer = document.getElementById("audioPlayer");
+      const downloadLink = document.getElementById("downloadLink");
+
+      btn.disabled = true;
+      statusArea.classList.add("visible");
+      spinnerWrap.style.display = "flex";
+      resultBox.style.display = "none";
+      errorBox.style.display = "none";
+      statusText.textContent = selectedMode === "timed"
+        ? "Синтезирую фрагменты и выстраиваю тайминг..."
+        : "Синтезирую речь...";
+
+      try {
+        const res = await fetch("/synthesize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text,
+            language: selectedLang,
+            voice: voiceSel.value,
+            mode: selectedMode,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || "Ошибка сервера");
+        }
+
+        const data = await res.json();
+        const audioUrl = `/download/${data.filename}`;
+
+        spinnerWrap.style.display = "none";
+        audioPlayer.src = audioUrl;
+        downloadLink.href = audioUrl;
+        downloadLink.download = data.filename;
+        resultBox.style.display = "block";
+        audioPlayer.play().catch(() => {});
+      } catch (e) {
+        spinnerWrap.style.display = "none";
+        errorBox.textContent = "Ошибка: " + e.message;
+        errorBox.style.display = "block";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+
+</body>
+</html>
